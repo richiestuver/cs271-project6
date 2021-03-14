@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 11:27:06
+Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 11:31:37
  Project6     (Proj6_stuverr.asm			     Page 1 - 1
 
 
@@ -71,7 +71,26 @@ Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 11:27:06
 
 				ENDM
 
+				; ---------------------------------------------------------------------------------
+				; Name: mDisplayString
+				;
+				; Description: Calls Irvine proc to write a string from memory
+				;
+				; Preconditions:
+				;
+				; Receives:     string_addr = address for string to write
+				; 
+				; Returns:      string contained at string_addr written to console
+				;
+				; ---------------------------------------------------------------------------------
 				mDisplayString MACRO string_addr
+
+				    PUSH    EDX
+
+				    MOV     EDX, offset string_addr
+				    CALL    WriteString
+
+				    POP     EDX
 
 				ENDM
 
@@ -163,18 +182,21 @@ Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 11:27:06
  00000027  59		     1	    POP     ECX
  00000028  58		     1	    POP     EAX
 
- 00000029  BA 0000011B R	    MOV     EDX, offset userString
- 0000002E  E8 00000000 E	    CALL    WriteString
+				    mDisplayString offset userString
+ 00000029  52		     1	    PUSH    EDX
+ 0000002A  BA 0000011B R     1	    MOV     EDX, offset offset userString
+ 0000002F  E8 00000000 E     1	    CALL    WriteString
+ 00000034  5A		     1	    POP     EDX
 
 				    Invoke ExitProcess,0	; exit to operating system
- 00000033  6A 00	   *	    push   +000000000h
- 00000035  E8 00000000 E   *	    call   ExitProcess
- 0000003A			main ENDP
+ 00000035  6A 00	   *	    push   +000000000h
+ 00000037  E8 00000000 E   *	    call   ExitProcess
+ 0000003C			main ENDP
 
 				; (insert additional procedures here)
 
 				END main
-Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 11:27:06
+Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 11:31:37
  Project6     (Proj6_stuverr.asm			     Symbols 2 - 1
 
 
@@ -277,7 +299,7 @@ Segments and Groups:
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
 _DATA  . . . . . . . . . . . . .	32 Bit	 0000012A Para	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 0000003A Para	  Public  'CODE'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 0000003C Para	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
@@ -384,7 +406,7 @@ WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 0000003A Public STDCALL
+main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 0000003C Public STDCALL
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C

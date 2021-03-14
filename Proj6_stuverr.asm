@@ -50,7 +50,26 @@ mGetString MACRO prompt_addr:REQ, write_addr:REQ, buffer_val:REQ, bytes_read_add
 
 ENDM
 
+; ---------------------------------------------------------------------------------
+; Name: mDisplayString
+;
+; Description: Calls Irvine proc to write a string from memory
+;
+; Preconditions:
+;
+; Receives:     string_addr = address for string to write
+; 
+; Returns:      string contained at string_addr written to console
+;
+; ---------------------------------------------------------------------------------
 mDisplayString MACRO string_addr
+
+    PUSH    EDX
+
+    MOV     EDX, offset string_addr
+    CALL    WriteString
+
+    POP     EDX
 
 ENDM
 
@@ -77,8 +96,7 @@ main PROC
 
     mGetString offset prompt, offset userString, sizeof userString, offset lenUserString
 
-    MOV     EDX, offset userString
-    CALL    WriteString
+    mDisplayString offset userString
 
     Invoke ExitProcess,0	; exit to operating system
 main ENDP
