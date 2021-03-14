@@ -254,11 +254,8 @@ _proceed:
     
 _continue:
     ;------------------------------
-    ; Display the value to confirm it's working
     ; Store the integer in the given output memory address
     ;------------------------------
-    MOV     EAX, EBX
-    CALL    WriteInt
 
     MOV     EDI, [EBP + 24]
     MOV     [EDI], EBX
