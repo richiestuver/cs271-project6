@@ -80,7 +80,7 @@ ENDM
 ; (insert variable definitions here)
     intro               BYTE    "Project 6: The final project - by Richie Stuver", 13,10,13,10,
                                 "Enter 10 signed decimal integers small enough to fit into a 32bit register.",
-                                "The program will display the list assume well assume the sum and rounded average.",13,10,13,10,0
+                                "The program will display the list as well as the sum and rounded average.",13,10,13,10,0
     prompt              BYTE    "Please enter a signed number: ",0
 
     userInts            DWORD   10 DUP(?)
@@ -93,6 +93,8 @@ ENDM
 main PROC
 
 ; (insert executable instructions here)
+
+    mDisplayString offset intro
 
     mGetString offset prompt, offset userString, sizeof userString, offset lenUserString
 
