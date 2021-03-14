@@ -180,7 +180,17 @@ _start:
     ; If the first char is a sign, check if it's negative.
     ; if the sign is positive, skip to the next char in the array.
     ;------------------------------
-    JMP     _check_low
+_check_pos:
+    CMP     AL, '+'
+    JNE     _check_neg
+    DEC     ECX
+    JMP     _loop
+
+_check_neg:
+    CMP     AL, '-'
+    JNE     _check_low
+    DEC     ECX
+    JMP     _loop
 
 _loop:
     LODSB
@@ -207,11 +217,18 @@ _calculateTotal:
     PUSH    EAX
     MOV     EAX, +10
     IMUL    EBX
+    JNO     _proceed
+    POP     EAX
+    JMP     _error
+_proceed:
     MOV     EBX, EAX
     POP     EAX
 
     MOVZX   EAX, AL
     ADD     EBX, EAX
+    ;------------------------------
+    ; Check for overflow. A postive number larger than 2,147,483,647 will not fit.
+    ;------------------------------
     JO      _error
 
     LOOP    _loop
@@ -222,16 +239,17 @@ _calculateTotal:
     ;------------------------------
     ; if the sign is negative, negate. 
     ;------------------------------
+    PUSH    EBX
+    MOV     EBX, [EBP + 8]  ; addr of length of user input
+    MOV     ESI, [EBP + 16]
+    LODSB   
+    POP     EBX
 
-    ;------------------------------
-    ; Check for overflow. A postive number larger than 2,147,483,647 will not fit.
-    ;------------------------------
-
-   ; MOV     EAX, +2147483647
-    ;CMP     EBX, EAX
-    ;JG      _error
+    CMP     AL, '-'
+    JNE     _continue
+    NEG     EBX
     
-
+_continue:
     ;------------------------------
     ; Display the value to confirm it's working
     ;------------------------------
