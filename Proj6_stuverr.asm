@@ -108,16 +108,27 @@ main PROC
     ;------------------------------
     ; Collect the user's inputs and validate.
     ;------------------------------
-    
-    PUSH    offset userInts         ; [EBP + 24]
+    MOV     ECX, LENGTHOF userInts
+    MOV     ESI, offset userInts
+    MOV     EBX, TYPE userInts
+_get_ints:
+
+    PUSH    ESI                     ; [EBP + 24]
     PUSH    offset prompt           ; [EBP + 20]
     push    offset userString       ; [EBP + 16]
     push    SIZEOF userString       ; [EBP + 12]
     push    offset lenUserString    ; [EBP + 8]
     CALL    ReadVal
+    CALL    CrLf
 
-    MOV     EAX, userInts
+    MOV     EAX, [ESI]
     CALL    WriteInt
+
+    ADD     ESI, EBX
+    LOOP    _get_ints
+
+    ;MOV     EDX, offset userInts
+    ;CALL    WriteString
 
     ;mDisplayString offset userString
 
