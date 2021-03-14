@@ -116,6 +116,9 @@ main PROC
     push    offset lenUserString    ; [EBP + 8]
     CALL    ReadVal
 
+    MOV     EAX, userInts
+    CALL    WriteInt
+
     ;mDisplayString offset userString
 
     Invoke ExitProcess,0	; exit to operating system
@@ -252,9 +255,14 @@ _proceed:
 _continue:
     ;------------------------------
     ; Display the value to confirm it's working
+    ; Store the integer in the given output memory address
     ;------------------------------
     MOV     EAX, EBX
     CALL    WriteInt
+
+    MOV     EDI, [EBP + 24]
+    MOV     [EDI], EBX
+
     JMP     _tearDown
 
 _error:
