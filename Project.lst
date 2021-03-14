@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 11:33:38
+Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 14:32:17
  Project6     (Proj6_stuverr.asm			     Page 1 - 1
 
 
@@ -53,20 +53,23 @@ Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 11:33:38
 				mGetString MACRO prompt_addr:REQ, write_addr:REQ, buffer_val:REQ, bytes_read_addr:REQ
 				    
 				    PUSH    EAX
+				    PUSH    EBX
 				    PUSH    ECX
 				    PUSH    EDX
 
 				    MOV     EDX, prompt_addr
 				    CALL    WriteString
-				    CALL    CrLf
 
 				    MOV     EDX, write_addr
 				    MOV     ECX, buffer_val
 				    CALL    ReadString ; address of user string now in EDX, lenght in EAX
-				    MOV     [bytes_read_addr], EAX
+				    
+				    MOV     EBX, bytes_read_addr
+				    MOV     [EBX], EAX
 
 				    POP     EDX
 				    POP     ECX
+				    POP     EBX
 				    POP     EAX
 
 				ENDM
@@ -131,20 +134,19 @@ Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 11:33:38
 	   73 70 6C 61 79
 	   20 74 68 65 20
 	   6C 69 73 74 20
-	   61 73 73 75 6D
-	   65 20 77 65 6C
-	   6C 20 61 73 73
-	   75 6D 65 20 74
-	   68 65 20 73 75
-	   6D 20 61 6E 64
-	   20 72 6F 75 6E
-	   64 65 64 20 61
-	   76 65 72 61 67
-	   65 2E 0D 0A 0D
-	   0A 00
+	   61 73 20 77 65
+	   6C 6C 20 61 73
+	   20 74 68 65 20
+	   73 75 6D 20 61
+	   6E 64 20 72 6F
+	   75 6E 64 65 64
+	   20 61 76 65 72
+	   61 67 65 2E 0D
+	   0A 0D 0A 00
 				                                "Enter 10 signed decimal integers small enough to fit into a 32bit register.",
-				                                "The program will display the list assume well assume the sum and rounded average.",13,10,13,10,0
- 000000D4 50 6C 65 61 73	    prompt              BYTE    "Please enter a signed number: ",0
+				                                "The program will display the list as well as the sum and rounded average.",13,10,13,10,0
+				    
+ 000000CC 50 6C 65 61 73	    prompt              BYTE    "Please enter a signed number: ",0
 	   65 20 65 6E 74
 	   65 72 20 61 20
 	   73 69 67 6E 65
@@ -152,14 +154,27 @@ Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 11:33:38
 	   62 65 72 3A 20
 	   00
 
- 000000F3  0000000A [		    userInts            DWORD   10 DUP(?)
+ 000000EB 45 52 52 4F 52	    error               BYTE    "ERROR: Invalid input. Too large or not a signed integer.",0
+	   3A 20 49 6E 76
+	   61 6C 69 64 20
+	   69 6E 70 75 74
+	   2E 20 54 6F 6F
+	   20 6C 61 72 67
+	   65 20 6F 72 20
+	   6E 6F 74 20 61
+	   20 73 69 67 6E
+	   65 64 20 69 6E
+	   74 65 67 65 72
+	   2E 00
+
+ 00000124  0000000A [		    userInts            DWORD   10 DUP(?)
 	    00000000
 	   ]
 
- 0000011B  0000000B [		    userString          BYTE    11 DUP(0) ; 32 bit signed integer is 10 digits long
+ 0000014C  00000021 [		    userString          BYTE    33 DUP(0) ; large enough for user to enter up to 32 chars
 	    00
 	   ]
- 00000126 00000000		    lenUserString       DWORD   ?
+ 0000016D 00000000		    lenUserString       DWORD   ? ; 32 bit signed integer is 10 digits long
 
 
  00000000			.code
@@ -167,42 +182,166 @@ Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 11:33:38
 
 				; (insert executable instructions here)
 
+				    ;------------------------------
+				    ; Introduction and instructions to the user
+				    ;------------------------------
 				    mDisplayString offset intro
  00000000  52		     1	    PUSH    EDX
  00000001  BA 00000000 R     1	    MOV     EDX, offset offset intro
  00000006  E8 00000000 E     1	    CALL    WriteString
  0000000B  5A		     1	    POP     EDX
 
-				    mGetString offset prompt, offset userString, sizeof userString, offset lenUserString
- 0000000C  50		     1	    PUSH    EAX
- 0000000D  51		     1	    PUSH    ECX
- 0000000E  52		     1	    PUSH    EDX
- 0000000F  BA 000000D4 R     1	    MOV     EDX, offset prompt
- 00000014  E8 00000000 E     1	    CALL    WriteString
- 00000019  E8 00000000 E     1	    CALL    CrLf
- 0000001E  BA 0000011B R     1	    MOV     EDX, offset userString
- 00000023  B9 0000000B	     1	    MOV     ECX, sizeof userString
- 00000028  E8 00000000 E     1	    CALL    ReadString ; address of user string now in EDX, lenght in EAX
- 0000002D  A3 00000126 R     1	    MOV     [offset lenUserString], EAX
- 00000032  5A		     1	    POP     EDX
- 00000033  59		     1	    POP     ECX
- 00000034  58		     1	    POP     EAX
+				    ;------------------------------
+				    ; Collect the user's inputs and validate.
+				    ;------------------------------
+				    
+ 0000000C  68 00000124 R	    PUSH    offset userInts         ; [EBP + 24]
+ 00000011  68 000000CC R	    PUSH    offset prompt           ; [EBP + 20]
+ 00000016  68 0000014C R	    push    offset userString       ; [EBP + 16]
+ 0000001B  6A 21		    push    SIZEOF userString       ; [EBP + 12]
+ 0000001D  68 0000016D R	    push    offset lenUserString    ; [EBP + 8]
+ 00000022  E8 00000007		    CALL    ReadVal
 
-				    mDisplayString offset userString
- 00000035  52		     1	    PUSH    EDX
- 00000036  BA 0000011B R     1	    MOV     EDX, offset offset userString
- 0000003B  E8 00000000 E     1	    CALL    WriteString
- 00000040  5A		     1	    POP     EDX
+				    ;mDisplayString offset userString
 
 				    Invoke ExitProcess,0	; exit to operating system
- 00000041  6A 00	   *	    push   +000000000h
- 00000043  E8 00000000 E   *	    call   ExitProcess
- 00000048			main ENDP
+ 00000027  6A 00	   *	    push   +000000000h
+ 00000029  E8 00000000 E   *	    call   ExitProcess
+ 0000002E			main ENDP
 
 				; (insert additional procedures here)
 
+				; ---------------------------------------------------------------------------------
+				; Name: ReadVal
+				;
+				; Description: Gets user input as a string of ascii digits. Converts digits to 
+				;               numeric SDWORD. Validates the input. Writes the SDWORD to memory.
+				;
+				; Preconditions: pass in 5x 4byte data types == 20 bytes
+				;
+				; Postconditions: all registers saved and restored. 
+				;
+				; Recieves: 1) addr to store user DWORD         [EBP + 24]
+				;           2) addr of prompt string            [EBP + 20]
+				;           3) addr to store user string        [EBP + 16]
+				;           4) size of user string              [EBP + 12]
+				;           5) addr to store bytes read         [EBP + 8]
+				;
+				; Returns: user's input saved as dword in memory
+				;
+				; ---------------------------------------------------------------------------------
+ 0000002E			ReadVal PROC
+
+				    ;------------------------------
+				    ; Setup the call stack and preserve any 
+				    ; registers used.
+				    ;------------------------------
+ 0000002E  55			    PUSH    EBP
+ 0000002F  8B EC		    MOV     EBP, ESP
+
+ 00000031  50			    PUSH    EAX
+ 00000032  53			    PUSH    EBX
+ 00000033  51			    PUSH    ECX
+ 00000034  56			    PUSH    ESI
+ 00000035  57			    PUSH    EDI
+
+				    ;------------------
+				    ; Do stuff
+				    ;------------------
+				    mGetString [EBP + 20], [EBP + 16], [EBP + 12], [EBP + 8]
+ 00000036  50		     1	    PUSH    EAX
+ 00000037  53		     1	    PUSH    EBX
+ 00000038  51		     1	    PUSH    ECX
+ 00000039  52		     1	    PUSH    EDX
+ 0000003A  8B 55 14	     1	    MOV     EDX, [EBP + 20]
+ 0000003D  E8 00000000 E     1	    CALL    WriteString
+ 00000042  8B 55 10	     1	    MOV     EDX, [EBP + 16]
+ 00000045  8B 4D 0C	     1	    MOV     ECX, [EBP + 12]
+ 00000048  E8 00000000 E     1	    CALL    ReadString ; address of user string now in EDX, lenght in EAX
+ 0000004D  8B 5D 08	     1	    MOV     EBX, [EBP + 8]
+ 00000050  89 03	     1	    MOV     [EBX], EAX
+ 00000052  5A		     1	    POP     EDX
+ 00000053  59		     1	    POP     ECX
+ 00000054  5B		     1	    POP     EBX
+ 00000055  58		     1	    POP     EAX
+
+				    ;------------------------------
+				    ; Set the direction flag to start at the end of the user int
+				    ; For each byte, load it into the accumulator, convert it to
+				    ; it's numeric value, and add it to the running total.
+				    ;------------------------------
+				    
+ 00000056  8B 5D 08		    MOV     EBX, [EBP + 8]
+ 00000059  8B 75 10		    MOV     ESI, [EBP + 16]
+				    ;ADD     ESI, [EBX]
+				    ;DEC     ESI
+ 0000005C  8B 0B		    MOV     ECX, [EBX]
+				    ;STD
+ 0000005E  FC			    CLD
+
+ 0000005F  BB 00000000		    MOV     EBX, 0
+ 00000064			_loop:
+ 00000064  AC			    LODSB
+ 00000065  2C 30		    SUB     AL, '0' ; start of ascii integers
+
+ 00000067  50			    PUSH    EAX
+ 00000068  B8 0000000A		    MOV     EAX, 10
+ 0000006D  F7 E3		    MUL     EBX
+ 0000006F  8B D8		    MOV     EBX, EAX
+ 00000071  58			    POP     EAX
+
+ 00000072  0F B6 C0		    MOVZX   EAX, AL
+ 00000075  03 D8		    ADD     EBX, EAX
+
+				    ;CALL    WriteChar
+ 00000077  E2 EB		    LOOP    _loop
+
+				    ;CLD ; DONT FORGET TO CLEAR THE DIRECTION FLAG
+
+ 00000079  8B C3		    MOV     EAX, EBX
+ 0000007B  E8 00000000 E	    CALL    WriteDec
+				    ;------------------------------
+				    ; Display the value to confirm it's working
+				    ;------------------------------
+
+
+				    ;------------------------------
+				    ; Tear down the call stack and restore registers
+				    ;------------------------------
+
+ 00000080  5F			    POP     EDI
+ 00000081  5E			    POP     ESI
+ 00000082  59			    POP     ECX
+ 00000083  5B			    POP     EBX
+ 00000084  58			    POP     EAX
+
+ 00000085  5D			    POP     EBP
+ 00000086  C2 0014		    RET 20
+
+ 00000089			ReadVal ENDP
+
+				; ---------------------------------------------------------------------------------
+				; Name:
+				;
+				; Description:
+				;
+				; Preconditions:
+				;
+				; Postconditions:
+				;
+				; Recieves:
+				;
+				; Returns:
+				;
+				; ---------------------------------------------------------------------------------
+ 00000089			WriteVal PROC
+
+ 00000089  C3			    RET
+
+ 0000008A			WriteVal ENDP
+
 				END main
-Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 11:33:38
+Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 14:32:17
  Project6     (Proj6_stuverr.asm			     Symbols 2 - 1
 
 
@@ -304,8 +443,8 @@ Segments and Groups:
 
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
-_DATA  . . . . . . . . . . . . .	32 Bit	 0000012A Para	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 00000048 Para	  Public  'CODE'	
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000171 Para	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 0000008A Para	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
@@ -375,6 +514,8 @@ ReadInt  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 ReadKeyFlush . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ReadKey  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ReadString . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadVal  . . . . . . . . . . . .	P Near	 0000002E _TEXT	Length= 0000005B Public STDCALL
+  _loop  . . . . . . . . . . . .	L Near	 00000064 _TEXT	
 SetConsoleCursorInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 SetConsoleCursorPosition . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 SetConsoleMode . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -411,8 +552,9 @@ WriteStackFrameName  . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteVal . . . . . . . . . . . .	P Near	 00000089 _TEXT	Length= 00000001 Public STDCALL
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000048 Public STDCALL
+main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 0000002E Public STDCALL
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
@@ -635,11 +777,12 @@ black  . . . . . . . . . . . . .	Number	 00000000h
 blue . . . . . . . . . . . . . .	Number	 00000001h   
 brown  . . . . . . . . . . . . .	Number	 00000006h   
 cyan . . . . . . . . . . . . . .	Number	 00000003h   
+error  . . . . . . . . . . . . .	Byte	 000000EB _DATA	
 exit . . . . . . . . . . . . . .	Text   	 INVOKE ExitProcess,0
 gray . . . . . . . . . . . . . .	Number	 00000008h   
 green  . . . . . . . . . . . . .	Number	 00000002h   
 intro  . . . . . . . . . . . . .	Byte	 00000000 _DATA	
-lenUserString  . . . . . . . . .	DWord	 00000126 _DATA	
+lenUserString  . . . . . . . . .	DWord	 0000016D _DATA	
 lightBlue  . . . . . . . . . . .	Number	 00000009h   
 lightCyan  . . . . . . . . . . .	Number	 0000000Bh   
 lightGray  . . . . . . . . . . .	Number	 00000007h   
@@ -647,10 +790,10 @@ lightGreen . . . . . . . . . . .	Number	 0000000Ah
 lightMagenta . . . . . . . . . .	Number	 0000000Dh   
 lightRed . . . . . . . . . . . .	Number	 0000000Ch   
 magenta  . . . . . . . . . . . .	Number	 00000005h   
-prompt . . . . . . . . . . . . .	Byte	 000000D4 _DATA	
+prompt . . . . . . . . . . . . .	Byte	 000000CC _DATA	
 red  . . . . . . . . . . . . . .	Number	 00000004h   
-userInts . . . . . . . . . . . .	DWord	 000000F3 _DATA	
-userString . . . . . . . . . . .	Byte	 0000011B _DATA	
+userInts . . . . . . . . . . . .	DWord	 00000124 _DATA	
+userString . . . . . . . . . . .	Byte	 0000014C _DATA	
 white  . . . . . . . . . . . . .	Number	 0000000Fh   
 wsprintf . . . . . . . . . . . .	Text   	 wsprintfA
 yellow . . . . . . . . . . . . .	Number	 0000000Eh   
