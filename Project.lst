@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 15:09:46
+Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 16:08:55
  Project6     (Proj6_stuverr.asm			     Page 1 - 1
 
 
@@ -276,72 +276,50 @@ Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 15:09:46
  0000005C  8B 0B		    MOV     ECX, [EBX]      ; value of length of user input
 				    
  0000005E  FC			    CLD
- 0000005F  BB 00000000		    MOV     EBX, 0 ; store running total for the integer value
+ 0000005F  BB 00000000		    MOV     EBX, +0 ; store running total for the integer value
 
-
-				    ;------------------------------
-				    ; compare the first character of user input. do not proceed if it
-				    ; is not a +, - or an integer less than or equal to 2. this is because
-				    ; a signed 32 bit integer must be in
-				    ; 
-				    ; then compare user input length. if the first char is a sign and length 
-				    ; is > 11, the number is too big. if first char is a number and length is >10
-				    ; it is too big.
-				    ;------------------------------
  00000064  AC			    LODSB
- 00000065  BA 0000000A		    MOV     EDX, 10 ; store length of an integer with associated sign
- 0000006A			_is_sign_pos:
- 0000006A  3C 2B		    CMP     AL, 43
- 0000006C  75 02		    JNE     _is_sign_neg
- 0000006E  EB 06		    JMP     _compare_length
+				    ;------------------------------
+				    ; If the first char is a sign, check if it's negative.
+				    ; if the sign is positive, skip to the next char in the array.
+				    ;------------------------------
+ 00000065  EB 01		    JMP     _check_low
 
- 00000070			_is_sign_neg:
- 00000070  3C 2D		    CMP     AL, 45
- 00000072  75 02		    JNE     _is_in_range_low
- 00000074  EB 00		    JMP     _compare_length
-
- 00000076			_compare_length:
-
- 00000076			_is_in_range_low:
- 00000076  3C 30		    CMP     AL, 48
- 00000078  73 02		    JAE      _is_in_range_high
- 0000007A  EB 25		    JMP     _error
-
- 0000007C			_is_in_range_high:
- 0000007C  3C 32		    CMP     AL, 50
- 0000007E  76 03		    JBE     _calculateTotal
- 00000080  EB 1F		    JMP     _error
-
- 00000082			_loop:
- 00000082  AC			    LODSB
+ 00000067			_loop:
+ 00000067  AC			    LODSB
 				    ;------------------------------
 				    ; DO A COMPARISON HERE FOR ILLEGAL CHARS. if char is not in [48, 57]
 				    ; then it is not a valid integer
 				    ;------------------------------
+ 00000068			_check_low:
+ 00000068  3C 30		    CMP     AL, '0'
+ 0000006A  7C 26		    JL      _error
+ 0000006C  EB 00		    JMP     _check_high
 
-				    ;------------------------------
-				    ; If the first char is a sign, skip to the next char in the array.
-				    ;------------------------------
+ 0000006E			_check_high:
+ 0000006E  3C 39		    CMP     AL, '9'
+ 00000070  7F 20		    JG      _error
 
 				    ;------------------------------
 				    ; load the char into the accumulator, convert it to
 				    ; it's numeric value, and add it to the running total.
 				    ; after this loop exits, the final int value is in EBX
 				    ;------------------------------
- 00000083			_calculateTotal:
- 00000083  2C 30		    SUB     AL, '0' ; start of ascii integers
- 00000085  50			    PUSH    EAX
- 00000086  B8 0000000A		    MOV     EAX, 10
- 0000008B  F7 E3		    MUL     EBX
- 0000008D  8B D8		    MOV     EBX, EAX
- 0000008F  58			    POP     EAX
+ 00000072			_calculateTotal:
+ 00000072  2C 30		    SUB     AL, '0' ; start of ascii integers
+ 00000074  50			    PUSH    EAX
+ 00000075  B8 0000000A		    MOV     EAX, +10
+ 0000007A  F7 EB		    IMUL    EBX
+ 0000007C  8B D8		    MOV     EBX, EAX
+ 0000007E  58			    POP     EAX
 
- 00000090  0F B6 C0		    MOVZX   EAX, AL
- 00000093  03 D8		    ADD     EBX, EAX
+ 0000007F  0F B6 C0		    MOVZX   EAX, AL
+ 00000082  03 D8		    ADD     EBX, EAX
+ 00000084  70 0C		    JO      _error
 
- 00000095  E2 EB		    LOOP    _loop
+ 00000086  E2 DF		    LOOP    _loop
 
- 00000097  FC			    CLD ; DONT FORGET TO CLEAR THE DIRECTION FLAG
+ 00000088  FC			    CLD ; DONT FORGET TO CLEAR THE DIRECTION FLAG
 				    
 
 				    ;------------------------------
@@ -349,31 +327,41 @@ Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 15:09:46
 				    ;------------------------------
 
 				    ;------------------------------
+				    ; Check for overflow. A postive number larger than 2,147,483,647 will not fit.
+				    ;------------------------------
+
+				   ; MOV     EAX, +2147483647
+				    ;CMP     EBX, EAX
+				    ;JG      _error
+				    
+
+				    ;------------------------------
 				    ; Display the value to confirm it's working
 				    ;------------------------------
- 00000098  8B C3		    MOV     EAX, EBX
- 0000009A  E8 00000000 E	    CALL    WriteDec
- 0000009F  EB 0C		    JMP     _tearDown
+ 00000089  8B C3		    MOV     EAX, EBX
+ 0000008B  E8 00000000 E	    CALL    WriteInt
+ 00000090  EB 11		    JMP     _tearDown
 
- 000000A1			_error:
- 000000A1  BA 000000EB R	    MOV     edx, offset error
- 000000A6  E8 00000000 E	    CALL    WriteString
- 000000AB  EB 89		    JMP     _start
+ 00000092			_error:
+ 00000092  BA 000000EB R	    MOV     edx, offset error
+ 00000097  E8 00000000 E	    CALL    WriteString
+ 0000009C  E8 00000000 E	    CALL    CrLf
+ 000000A1  EB 93		    JMP     _start
 
 				    ;------------------------------
 				    ; Tear down the call stack and restore registers
 				    ;------------------------------
- 000000AD			_tearDown:
- 000000AD  5F			    POP     EDI
- 000000AE  5E			    POP     ESI
- 000000AF  59			    POP     ECX
- 000000B0  5B			    POP     EBX
- 000000B1  58			    POP     EAX
+ 000000A3			_tearDown:
+ 000000A3  5F			    POP     EDI
+ 000000A4  5E			    POP     ESI
+ 000000A5  59			    POP     ECX
+ 000000A6  5B			    POP     EBX
+ 000000A7  58			    POP     EAX
 
- 000000B2  5D			    POP     EBP
- 000000B3  C2 0014		    RET 20
+ 000000A8  5D			    POP     EBP
+ 000000A9  C2 0014		    RET 20
 
- 000000B6			ReadVal ENDP
+ 000000AC			ReadVal ENDP
 
 				; ---------------------------------------------------------------------------------
 				; Name:
@@ -389,14 +377,14 @@ Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 15:09:46
 				; Returns:
 				;
 				; ---------------------------------------------------------------------------------
- 000000B6			WriteVal PROC
+ 000000AC			WriteVal PROC
 
- 000000B6  C3			    RET
+ 000000AC  C3			    RET
 
- 000000B7			WriteVal ENDP
+ 000000AD			WriteVal ENDP
 
 				END main
-Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 15:09:46
+Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 16:08:55
  Project6     (Proj6_stuverr.asm			     Symbols 2 - 1
 
 
@@ -499,7 +487,7 @@ Segments and Groups:
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
 _DATA  . . . . . . . . . . . . .	32 Bit	 00000171 Para	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 000000B7 Para	  Public  'CODE'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 000000AD Para	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
@@ -569,17 +557,14 @@ ReadInt  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 ReadKeyFlush . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ReadKey  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ReadString . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-ReadVal  . . . . . . . . . . . .	P Near	 0000002E _TEXT	Length= 00000088 Public STDCALL
+ReadVal  . . . . . . . . . . . .	P Near	 0000002E _TEXT	Length= 0000007E Public STDCALL
   _start . . . . . . . . . . . .	L Near	 00000036 _TEXT	
-  _is_sign_pos . . . . . . . . .	L Near	 0000006A _TEXT	
-  _is_sign_neg . . . . . . . . .	L Near	 00000070 _TEXT	
-  _compare_length  . . . . . . .	L Near	 00000076 _TEXT	
-  _is_in_range_low . . . . . . .	L Near	 00000076 _TEXT	
-  _is_in_range_high  . . . . . .	L Near	 0000007C _TEXT	
-  _loop  . . . . . . . . . . . .	L Near	 00000082 _TEXT	
-  _calculateTotal  . . . . . . .	L Near	 00000083 _TEXT	
-  _error . . . . . . . . . . . .	L Near	 000000A1 _TEXT	
-  _tearDown  . . . . . . . . . .	L Near	 000000AD _TEXT	
+  _loop  . . . . . . . . . . . .	L Near	 00000067 _TEXT	
+  _check_low . . . . . . . . . .	L Near	 00000068 _TEXT	
+  _check_high  . . . . . . . . .	L Near	 0000006E _TEXT	
+  _calculateTotal  . . . . . . .	L Near	 00000072 _TEXT	
+  _error . . . . . . . . . . . .	L Near	 00000092 _TEXT	
+  _tearDown  . . . . . . . . . .	L Near	 000000A3 _TEXT	
 SetConsoleCursorInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 SetConsoleCursorPosition . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 SetConsoleMode . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -616,7 +601,7 @@ WriteStackFrameName  . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-WriteVal . . . . . . . . . . . .	P Near	 000000B6 _TEXT	Length= 00000001 Public STDCALL
+WriteVal . . . . . . . . . . . .	P Near	 000000AC _TEXT	Length= 00000001 Public STDCALL
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 0000002E Public STDCALL
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C

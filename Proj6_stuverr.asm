@@ -173,41 +173,14 @@ _start:
     MOV     ECX, [EBX]      ; value of length of user input
     
     CLD
-    MOV     EBX, 0 ; store running total for the integer value
+    MOV     EBX, +0 ; store running total for the integer value
 
-
-    ;------------------------------
-    ; compare the first character of user input. do not proceed if it
-    ; is not a +, - or an integer less than or equal to 2. this is because
-    ; a signed 32 bit integer must be in
-    ; 
-    ; then compare user input length. if the first char is a sign and length 
-    ; is > 11, the number is too big. if first char is a number and length is >10
-    ; it is too big.
-    ;------------------------------
     LODSB
-    MOV     EDX, 10 ; store length of an integer with associated sign
-_is_sign_pos:
-    CMP     AL, 43
-    JNE     _is_sign_neg
-    JMP     _compare_length
-
-_is_sign_neg:
-    CMP     AL, 45
-    JNE     _is_in_range_low
-    JMP     _compare_length
-
-_compare_length:
-
-_is_in_range_low:
-    CMP     AL, 48
-    JAE      _is_in_range_high
-    JMP     _error
-
-_is_in_range_high:
-    CMP     AL, 50
-    JBE     _calculateTotal
-    JMP     _error
+    ;------------------------------
+    ; If the first char is a sign, check if it's negative.
+    ; if the sign is positive, skip to the next char in the array.
+    ;------------------------------
+    JMP     _check_low
 
 _loop:
     LODSB
@@ -215,10 +188,14 @@ _loop:
     ; DO A COMPARISON HERE FOR ILLEGAL CHARS. if char is not in [48, 57]
     ; then it is not a valid integer
     ;------------------------------
+_check_low:
+    CMP     AL, '0'
+    JL      _error
+    JMP     _check_high
 
-    ;------------------------------
-    ; If the first char is a sign, skip to the next char in the array.
-    ;------------------------------
+_check_high:
+    CMP     AL, '9'
+    JG      _error
 
     ;------------------------------
     ; load the char into the accumulator, convert it to
@@ -228,13 +205,14 @@ _loop:
 _calculateTotal:
     SUB     AL, '0' ; start of ascii integers
     PUSH    EAX
-    MOV     EAX, 10
-    MUL     EBX
+    MOV     EAX, +10
+    IMUL    EBX
     MOV     EBX, EAX
     POP     EAX
 
     MOVZX   EAX, AL
     ADD     EBX, EAX
+    JO      _error
 
     LOOP    _loop
 
@@ -246,15 +224,25 @@ _calculateTotal:
     ;------------------------------
 
     ;------------------------------
+    ; Check for overflow. A postive number larger than 2,147,483,647 will not fit.
+    ;------------------------------
+
+   ; MOV     EAX, +2147483647
+    ;CMP     EBX, EAX
+    ;JG      _error
+    
+
+    ;------------------------------
     ; Display the value to confirm it's working
     ;------------------------------
     MOV     EAX, EBX
-    CALL    WriteDec
+    CALL    WriteInt
     JMP     _tearDown
 
 _error:
     MOV     edx, offset error
     CALL    WriteString
+    CALL    CrLf
     JMP     _start
 
     ;------------------------------
