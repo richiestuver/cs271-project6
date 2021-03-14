@@ -157,28 +157,76 @@ ReadVal PROC
     PUSH    ESI
     PUSH    EDI
 
+_start:
     ;------------------
     ; Do stuff
     ;------------------
     mGetString [EBP + 20], [EBP + 16], [EBP + 12], [EBP + 8]
 
-    ;------------------------------
-    ; Set the direction flag to start at the end of the user int
-    ; For each byte, load it into the accumulator, convert it to
-    ; it's numeric value, and add it to the running total.
-    ;------------------------------
+    ;------------------
+    ; Setup registers with the values needed to perform the string 
+    ; traversal.
+    ;------------------
     
-    MOV     EBX, [EBP + 8]
-    MOV     ESI, [EBP + 16]
-    MOV     ECX, [EBX]
-
+    MOV     EBX, [EBP + 8]  ; addr of length of user input
+    MOV     ESI, [EBP + 16] ; address of user input
+    MOV     ECX, [EBX]      ; value of length of user input
+    
     CLD
+    MOV     EBX, 0 ; store running total for the integer value
 
-    MOV     EBX, 0
+
+    ;------------------------------
+    ; compare the first character of user input. do not proceed if it
+    ; is not a +, - or an integer less than or equal to 2. this is because
+    ; a signed 32 bit integer must be in
+    ; 
+    ; then compare user input length. if the first char is a sign and length 
+    ; is > 11, the number is too big. if first char is a number and length is >10
+    ; it is too big.
+    ;------------------------------
+    LODSB
+    MOV     EDX, 10 ; store length of an integer with associated sign
+_is_sign_pos:
+    CMP     AL, 43
+    JNE     _is_sign_neg
+    JMP     _compare_length
+
+_is_sign_neg:
+    CMP     AL, 45
+    JNE     _is_in_range_low
+    JMP     _compare_length
+
+_compare_length:
+
+_is_in_range_low:
+    CMP     AL, 48
+    JAE      _is_in_range_high
+    JMP     _error
+
+_is_in_range_high:
+    CMP     AL, 50
+    JBE     _calculateTotal
+    JMP     _error
+
 _loop:
     LODSB
-    SUB     AL, '0' ; start of ascii integers
+    ;------------------------------
+    ; DO A COMPARISON HERE FOR ILLEGAL CHARS. if char is not in [48, 57]
+    ; then it is not a valid integer
+    ;------------------------------
 
+    ;------------------------------
+    ; If the first char is a sign, skip to the next char in the array.
+    ;------------------------------
+
+    ;------------------------------
+    ; load the char into the accumulator, convert it to
+    ; it's numeric value, and add it to the running total.
+    ; after this loop exits, the final int value is in EBX
+    ;------------------------------
+_calculateTotal:
+    SUB     AL, '0' ; start of ascii integers
     PUSH    EAX
     MOV     EAX, 10
     MUL     EBX
@@ -192,16 +240,27 @@ _loop:
 
     CLD ; DONT FORGET TO CLEAR THE DIRECTION FLAG
     
+
+    ;------------------------------
+    ; if the sign is negative, negate. 
+    ;------------------------------
+
     ;------------------------------
     ; Display the value to confirm it's working
     ;------------------------------
     MOV     EAX, EBX
     CALL    WriteDec
+    JMP     _tearDown
+
+_error:
+    MOV     edx, offset error
+    CALL    WriteString
+    JMP     _start
 
     ;------------------------------
     ; Tear down the call stack and restore registers
     ;------------------------------
-
+_tearDown:
     POP     EDI
     POP     ESI
     POP     ECX
