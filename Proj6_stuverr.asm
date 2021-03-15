@@ -94,6 +94,7 @@ ENDM
     userString          BYTE    33 DUP(0) ; large enough for user to enter up to 32 chars
     lenUserString       DWORD   ? ; 32 bit signed integer is 10 digits long
 
+    tempString          BYTE    12 DUP(0)
 
 .code
 main PROC
@@ -122,7 +123,11 @@ _get_ints:
     CALL    CrLf
 
     MOV     EAX, [ESI]
-    CALL    WriteInt
+    PUSH    offset tempString       ; [EBP + 12]  
+    PUSH    EAX                     ; [EBP + 8]
+    CALL    writeVal
+    CALL    CrLf
+
 
     ADD     ESI, EBX
     LOOP    _get_ints
@@ -295,22 +300,57 @@ _tearDown:
 ReadVal ENDP
 
 ; ---------------------------------------------------------------------------------
-; Name:
+; Name: writeVal
 ;
-; Description:
+; Description: Takes in an SDWORD and converts it into an ascii representation
 ;
-; Preconditions:
+; Preconditions: pass in SDWORD by value and offset to store byte array
 ;
-; Postconditions:
+; Postconditions: all registers saved and restored
 ;
-; Recieves:
+; Recieves: 
+;           memory address to store string in while working [EBP + 12]
+;           SDWORD (4) [EBP + 8]
 ;
-; Returns:
+; Returns: sdword converted to ascii and written to output
 ;
 ; ---------------------------------------------------------------------------------
 WriteVal PROC
+    ;------------------------------
+    ; Setup the call stack and preserve any 
+    ; registers used.
+    ;------------------------------
 
-    RET
+    PUSH    EBP
+    MOV     EBP, ESP
+
+    PUSHAD
+    
+    MOV     EDI, [EBP + 12] ; write string here
+    MOV     EAX, [EBP + 8] ; signed dword
+_convert_to_string:
+
+    XOR     EDX, EDX
+    MOV     EBX, 10
+    DIV     EBX              ; remainder in EDX
+    
+    ADD     EDX, 48 ; make it an ascii char
+    MOV     [EDI], DL
+    INC     EDI
+
+    CMP     EAX, 0
+    JNE     _convert_to_string
+        
+    CALL    WriteInt
+
+    ;------------------------------
+    ; Tear down the call stack and restore registers
+    ;------------------------------
+
+    POPAD
+
+    POP     EBP
+    RET     8
 
 WriteVal ENDP
 
