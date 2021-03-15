@@ -18,7 +18,7 @@ INCLUDE Irvine32.inc
 ; Description: Calls Irvine proc to read a string from keyboard and stores at a 
 ;   given memory location.
 ;
-; Preconditions:
+; Preconditions: 
 ;
 ; Receives:     prompt_addr = address for user prompt string
 ;               write_addr = address to write the user string
@@ -128,7 +128,6 @@ _get_ints:
     push    SIZEOF userString       ; [EBP + 12]
     push    offset lenUserString    ; [EBP + 8]
     CALL    ReadVal
-    CALL    CrLf
 
     ADD     ESI, EBX ; increment to next address to write the value.
     LOOP    _get_ints
@@ -156,17 +155,22 @@ _loop_list:
     PUSH    EAX                     ; [EBP + 8]
     CALL    writeVal
 
-    ADD     EDX, EAX
     ;------------------------------
-    ; Formatting for printing list. Don't append comma or space to 
-    ; the last item
+    ; Handle loop management - incrment necessary counters and 
+    ; execute conditional branch to see if we are done
     ;------------------------------
-    ADD     ESI, EBX ; increment by size of data type
+    ADD     EDX, EAX ; keep a running total of the sum
+    
+    ADD     ESI, EBX ; increment by size of data type (dword)
 
     DEC     ECX
     CMP     ECX, 0   ; break out of loop
     JE      _continue 
 
+    ;------------------------------
+    ; Formatting for printing list. Don't append comma or space to 
+    ; the last item
+    ;------------------------------
     MOV     AL, 44 ; comma
     CALL    WriteChar
 
@@ -393,6 +397,7 @@ ReadVal ENDP
 ; Description: Takes in an SDWORD and converts it into an ascii representation
 ;
 ; Preconditions: pass in SDWORD by value and offset to store byte array for processing
+;                   and the address of an array to use for temp storage
 ;
 ; Postconditions: all registers saved and restored
 ;
@@ -416,7 +421,8 @@ WriteVal PROC
     PUSHAD
 
     ;------------------------------
-    ; clear the temporary string 
+    ; clear the temporary string by replacing it's contents with NULL (0)
+    ; if you don't do this, bad things happen.
     ;------------------------------
 
     MOV     EDI, [EBP + 12] ; write string here
@@ -465,7 +471,7 @@ _convert_to_string:
     
     ;------------------------------
     ; check for negativity by seeing if the dword is less than 0. 
-    ; if negative, append a "-" sign and take the negation
+    ; if negative, append a "-" sign for display purposes.
     ;------------------------------
 
     MOV     EAX, [EBP + 8]
@@ -480,14 +486,15 @@ _convert_to_string:
 _not_negative:
     ;------------------------------
     ; Loop back down through the string arr and reverse the string in memory
+    ; the next few lines set ESI and EDI to be same address and then inc/dec them
+    ; in opposite directions. this is so we can decrement down ESI and get the 
+    ; chars in reverse and add them to next successive slot in EDI.
     ;------------------------------
     STD
     MOV     esi, EDI
     DEC     ESI
     INC     EDI
     PUSH    EDI
-
-
 
 _reverse:
     LODSB   ; char is in AL
