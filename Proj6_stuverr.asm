@@ -235,15 +235,16 @@ main ENDP
 ; Description: Gets user input as a string of ascii digits. Converts digits to 
 ;               numeric SDWORD. Validates the input. Writes the SDWORD to memory.
 ;
-; Preconditions: pass in 5x 4byte data types == 20 bytes
+; Preconditions: pass in 6x 4byte data types == 24 bytes
 ;
 ; Postconditions: all registers saved and restored. 
 ;
-; Recieves: 1) addr to store user DWORD         [EBP + 24]
-;           2) addr of prompt string            [EBP + 20]
-;           3) addr to store user string        [EBP + 16]
-;           4) size of user string              [EBP + 12]
-;           5) addr to store bytes read         [EBP + 8]
+; Recieves: 1) addr for error message offset    [EBP + 28]
+;           2) addr to store user DWORD         [EBP + 24]
+;           3) addr of prompt string            [EBP + 20]
+;           4) addr to store user string        [EBP + 16]
+;           5) size of user string              [EBP + 12]
+;           6) addr to store bytes read         [EBP + 8]
 ;
 ; Returns: user's input saved as dword in memory
 ;
