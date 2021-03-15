@@ -69,7 +69,7 @@ mDisplayString MACRO string_addr
 
     PUSH    EDX
 
-    MOV     EDX, offset string_addr
+    MOV     EDX, string_addr
     CALL    WriteString
 
     POP     EDX
@@ -326,8 +326,15 @@ WriteVal PROC
 
     PUSHAD
     
+    ;------------------------------
+    ; loop through the string buffer provided and write out the remainder
+    ; of division by 10 to each location as an ascii digit. the string buffer
+    ; holds the ascii representation "backwards"
+    ;------------------------------
+
     MOV     EDI, [EBP + 12] ; write string here
     MOV     EAX, [EBP + 8] ; signed dword
+    MOV     ECX, 0 ; count the string length
 _convert_to_string:
 
     XOR     EDX, EDX
@@ -337,11 +344,30 @@ _convert_to_string:
     ADD     EDX, 48 ; make it an ascii char
     MOV     [EDI], DL
     INC     EDI
+    INC     ECX
 
     CMP     EAX, 0
     JNE     _convert_to_string
-        
-    CALL    WriteInt
+    
+    ;------------------------------
+    ; Loop back down through the string arr and reverse the string in memory
+    ;------------------------------
+    STD
+    MOV     esi, EDI
+    DEC     ESI
+    INC     EDI
+    PUSH    EDI
+
+_reverse:
+    LODSB   ; char is in AL
+    MOV     [EDI], AL
+    INC     EDI
+    LOOP    _reverse
+
+    CLD     ; NEVER FORGET
+    POP     EDI
+    MOV     ESI, EDI
+    mDisplayString ESI
 
     ;------------------------------
     ; Tear down the call stack and restore registers

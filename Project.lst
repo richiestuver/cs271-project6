@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 19:17:52
+Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 19:59:48
  Project6     (Proj6_stuverr.asm			     Page 1 - 1
 
 
@@ -90,7 +90,7 @@ Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 19:17:52
 
 				    PUSH    EDX
 
-				    MOV     EDX, offset string_addr
+				    MOV     EDX, string_addr
 				    CALL    WriteString
 
 				    POP     EDX
@@ -190,7 +190,7 @@ Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 19:17:52
 				    ;------------------------------
 				    mDisplayString offset intro
  00000000  52		     1	    PUSH    EDX
- 00000001  BA 00000000 R     1	    MOV     EDX, offset offset intro
+ 00000001  BA 00000000 R     1	    MOV     EDX, offset intro
  00000006  E8 00000000 E     1	    CALL    WriteString
  0000000B  5A		     1	    POP     EDX
 
@@ -431,36 +431,73 @@ Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 19:17:52
 
  000000F6  60			    PUSHAD
 				    
+				    ;------------------------------
+				    ; loop through the string buffer provided and write out the remainder
+				    ; of division by 10 to each location as an ascii digit. the string buffer
+				    ; holds the ascii representation "backwards"
+				    ;------------------------------
+
  000000F7  8B 7D 0C		    MOV     EDI, [EBP + 12] ; write string here
  000000FA  8B 45 08		    MOV     EAX, [EBP + 8] ; signed dword
- 000000FD			_convert_to_string:
+ 000000FD  B9 00000000		    MOV     ECX, 0 ; count the string length
+ 00000102			_convert_to_string:
 
- 000000FD  33 D2		    XOR     EDX, EDX
- 000000FF  BB 0000000A		    MOV     EBX, 10
- 00000104  F7 F3		    DIV     EBX              ; remainder in EDX
+ 00000102  33 D2		    XOR     EDX, EDX
+ 00000104  BB 0000000A		    MOV     EBX, 10
+ 00000109  F7 F3		    DIV     EBX              ; remainder in EDX
 				    
- 00000106  83 C2 30		    ADD     EDX, 48 ; make it an ascii char
- 00000109  88 17		    MOV     [EDI], DL
- 0000010B  47			    INC     EDI
+ 0000010B  83 C2 30		    ADD     EDX, 48 ; make it an ascii char
+ 0000010E  88 17		    MOV     [EDI], DL
+ 00000110  47			    INC     EDI
+ 00000111  41			    INC     ECX
 
- 0000010C  83 F8 00		    CMP     EAX, 0
- 0000010F  75 EC		    JNE     _convert_to_string
-				        
- 00000111  E8 00000000 E	    CALL    WriteInt
+ 00000112  83 F8 00		    CMP     EAX, 0
+ 00000115  75 EB		    JNE     _convert_to_string
+				    
+				    ;------------------------------
+				    ; Loop back down through the string arr and reverse the string
+				    ;------------------------------
+				    ;XOR     EDX, EDX
+				    ;MOV     EDX, 9
+				    ;MOV     [EDI], EDX ; null terminator
+				    ;INC     ECX
+
+ 00000117  FD			    STD
+ 00000118  8B F7		    MOV     esi, EDI
+ 0000011A  4E			    DEC     ESI
+ 0000011B  47			    INC     EDI
+ 0000011C  57			    PUSH    EDI
+
+ 0000011D			_reverse:
+ 0000011D  AC			    LODSB   ; char is in AL
+ 0000011E  88 07		    MOV     [EDI], AL
+ 00000120  47			    INC     EDI
+				    ;CALL    WriteChar
+
+ 00000121  E2 FA		    LOOP    _reverse
+ 00000123  5F			    POP     EDI
+
+ 00000124  8B F7		    MOV     ESI, EDI
+				    ;MOV     ESI, [EBP + 12]
+				    mDisplayString ESI
+ 00000126  52		     1	    PUSH    EDX
+ 00000127  8B D6	     1	    MOV     EDX, ESI
+ 00000129  E8 00000000 E     1	    CALL    WriteString
+ 0000012E  5A		     1	    POP     EDX
 
 				    ;------------------------------
 				    ; Tear down the call stack and restore registers
 				    ;------------------------------
 
- 00000116  61			    POPAD
+ 0000012F  61			    POPAD
 
- 00000117  5D			    POP     EBP
- 00000118  C2 0008		    RET     8
+ 00000130  5D			    POP     EBP
+ 00000131  C2 0008		    RET     8
 
- 0000011B			WriteVal ENDP
+ 00000134			WriteVal ENDP
 
 				END main
-Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 19:17:52
+Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 19:59:48
  Project6     (Proj6_stuverr.asm			     Symbols 2 - 1
 
 
@@ -563,7 +600,7 @@ Segments and Groups:
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
 _DATA  . . . . . . . . . . . . .	32 Bit	 0000017D Para	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 0000011B Para	  Public  'CODE'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 00000134 Para	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
@@ -681,8 +718,9 @@ WriteStackFrameName  . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-WriteVal . . . . . . . . . . . .	P Near	 000000F3 _TEXT	Length= 00000028 Public STDCALL
-  _convert_to_string . . . . . .	L Near	 000000FD _TEXT	
+WriteVal . . . . . . . . . . . .	P Near	 000000F3 _TEXT	Length= 00000041 Public STDCALL
+  _convert_to_string . . . . . .	L Near	 00000102 _TEXT	
+  _reverse . . . . . . . . . . .	L Near	 0000011D _TEXT	
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000054 Public STDCALL
   _get_ints  . . . . . . . . . .	L Near	 0000001B _TEXT	
