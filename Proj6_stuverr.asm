@@ -121,6 +121,7 @@ _get_ints:
     ;------------------------------
     ; Pass in arguments to ReadVal
     ;------------------------------
+    PUSH    offset error            ; [EBP + 28]
     PUSH    ESI                     ; [EBP + 24]
     PUSH    offset prompt           ; [EBP + 20]
     push    offset userString       ; [EBP + 16]
@@ -365,7 +366,7 @@ _continue:
     JMP     _tearDown
 
 _error:
-    MOV     edx, offset error
+    MOV     edx, [EBP + 28]
     CALL    WriteString
     CALL    CrLf
     JMP     _start
@@ -381,7 +382,7 @@ _tearDown:
     POP     EAX
 
     POP     EBP
-    RET 20
+    RET     24
 
 ReadVal ENDP
 
