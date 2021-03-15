@@ -131,35 +131,37 @@ _get_ints:
     ADD     ESI, EBX ; increment to next address to write the value.
     LOOP    _get_ints
 
-
-    ; write the list of values to console
-
+    ;------------------------------
+    ; This next section deals with 
+    ; writing the list of values to console.
+    ;------------------------------
     MOV     ECX, LENGTHOF userInts
     MOV     ESI, offset userInts
     MOV     EBX, TYPE userInts
-
-
+    MOV     EDX, 0 ; store the sum of userInts.
     ;------------------------------
     ; Write a title to the screen
     ;------------------------------
-
     mDisplayString offset list
-_display_list:
+
+_loop_list:
     ;------------------------------
     ; Pass in arguments to WriteVal
     ;------------------------------
     MOV     EAX, [ESI]
+    PUSH    lengthof tempstring     ; [EBP + 16]
     PUSH    offset tempString       ; [EBP + 12]  
     PUSH    EAX                     ; [EBP + 8]
     CALL    writeVal
 
+    ADD     EDX, EAX
     ;------------------------------
     ; Formatting for printing list. Don't append comma or space to 
     ; the last item
     ;------------------------------
-
     ADD     ESI, EBX ; increment by size of data type
 
+    DEC     ECX
     CMP     ECX, 0   ; break out of loop
     JE      _continue 
 
@@ -169,11 +171,49 @@ _display_list:
     MOV     AL, 32 ; space
     CALL    WriteChar
 
-    DEC     ECX
-    JMP     _display_list
+    JMP     _loop_list
  
  _continue:
+
+    CALL    CrLF
+
+    ;------------------------------
+    ; Display the sum stored in EDX
+    ;------------------------------
+    mDisplayString offset sum
+
+    ;------------------------------
+    ; Pass in arguments to WriteVal
+    ;------------------------------
+    PUSH    lengthof tempstring     ; [EBP + 16]
+    PUSH    offset tempString       ; [EBP + 12]  
+    PUSH    EDX                     ; [EBP + 8]
+    CALL    writeVal
     
+    CALL    CrLF
+    
+    ;------------------------------
+    ; Display the avg 
+    ;------------------------------
+    mDisplayString offset avg
+
+    ;------------------------------
+    ; Calculate the average
+    ;------------------------------
+    mov     eax, edx
+    mov     ebx, lengthof userInts
+    xor     edx, edx
+    IDIV    ebx
+    
+    ;------------------------------
+    ; Pass in arguments to WriteVal
+    ;------------------------------
+    PUSH    lengthof tempstring     ; [EBP + 16]
+    PUSH    offset tempString       ; [EBP + 12]  
+    PUSH    EAX                     ; [EBP + 8]
+    CALL    writeVal
+    
+    CALL    CrLF
 
     ;MOV     EDX, offset userInts
     ;CALL    WriteString
@@ -352,6 +392,7 @@ ReadVal ENDP
 ; Postconditions: all registers saved and restored
 ;
 ; Recieves: 
+;           length of temp string for processing [EBP + 16]
 ;           memory address to store string in while working [EBP + 12]
 ;           SDWORD (4) [EBP + 8]
 ;
@@ -368,6 +409,17 @@ WriteVal PROC
     MOV     EBP, ESP
 
     PUSHAD
+
+    ;------------------------------
+    ; clear the temporary string 
+    ;------------------------------
+
+    MOV     EDI, [EBP + 12] ; write string here
+    MOV     EAX, 0; null terminator
+    MOV     ECX, [EBP + 16] ; string length
+_clear_string:
+    STOSB
+    LOOP    _clear_string
     
     ;------------------------------
     ; loop through the string buffer provided and write out the remainder
@@ -419,7 +471,7 @@ _reverse:
     POPAD
 
     POP     EBP
-    RET     8
+    RET     12
 
 WriteVal ENDP
 
