@@ -89,6 +89,10 @@ ENDM
 
     error               BYTE    "ERROR: Invalid input. Too large or not a signed integer.",0
 
+    list                BYTE    "Your list is: ", 0
+    avg                 BYTE    "The average is: ", 0
+    sum                 BYTE    "The sum is: ", 0
+
     userInts            DWORD   10 DUP(?)
 
     userString          BYTE    33 DUP(0) ; large enough for user to enter up to 32 chars
@@ -113,7 +117,9 @@ main PROC
     MOV     ESI, offset userInts
     MOV     EBX, TYPE userInts
 _get_ints:
-
+    ;------------------------------
+    ; Pass in arguments to ReadVal
+    ;------------------------------
     PUSH    ESI                     ; [EBP + 24]
     PUSH    offset prompt           ; [EBP + 20]
     push    offset userString       ; [EBP + 16]
@@ -122,15 +128,52 @@ _get_ints:
     CALL    ReadVal
     CALL    CrLf
 
+    ADD     ESI, EBX ; increment to next address to write the value.
+    LOOP    _get_ints
+
+
+    ; write the list of values to console
+
+    MOV     ECX, LENGTHOF userInts
+    MOV     ESI, offset userInts
+    MOV     EBX, TYPE userInts
+
+
+    ;------------------------------
+    ; Write a title to the screen
+    ;------------------------------
+
+    mDisplayString offset list
+_display_list:
+    ;------------------------------
+    ; Pass in arguments to WriteVal
+    ;------------------------------
     MOV     EAX, [ESI]
     PUSH    offset tempString       ; [EBP + 12]  
     PUSH    EAX                     ; [EBP + 8]
     CALL    writeVal
-    CALL    CrLf
 
+    ;------------------------------
+    ; Formatting for printing list. Don't append comma or space to 
+    ; the last item
+    ;------------------------------
 
-    ADD     ESI, EBX
-    LOOP    _get_ints
+    ADD     ESI, EBX ; increment by size of data type
+
+    CMP     ECX, 0   ; break out of loop
+    JE      _continue 
+
+    MOV     AL, 44 ; comma
+    CALL    WriteChar
+
+    MOV     AL, 32 ; space
+    CALL    WriteChar
+
+    DEC     ECX
+    JMP     _display_list
+ 
+ _continue:
+    
 
     ;MOV     EDX, offset userInts
     ;CALL    WriteString
@@ -304,7 +347,7 @@ ReadVal ENDP
 ;
 ; Description: Takes in an SDWORD and converts it into an ascii representation
 ;
-; Preconditions: pass in SDWORD by value and offset to store byte array
+; Preconditions: pass in SDWORD by value and offset to store byte array for processing
 ;
 ; Postconditions: all registers saved and restored
 ;
@@ -361,7 +404,7 @@ _convert_to_string:
 _reverse:
     LODSB   ; char is in AL
     MOV     [EDI], AL
-    INC     EDI
+    INC     EDI ; add to the next available spot in the string buffer as we decrement ESI
     LOOP    _reverse
 
     CLD     ; NEVER FORGET
