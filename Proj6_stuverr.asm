@@ -204,7 +204,7 @@ _loop_list:
     ;------------------------------
     mov     eax, edx
     mov     ebx, lengthof userInts
-    xor     edx, edx
+    CDQ     ; convert dword to quadword for idiv
     IDIV    ebx
     
     ;------------------------------
@@ -447,7 +447,7 @@ _clear_string:
 
 _convert_to_string:
 
-    XOR     EDX, EDX
+    CDQ     ; convert dword to quadword for idiv
     MOV     EBX, 10
     IDIV    EBX     ; remainder in EDX
     
