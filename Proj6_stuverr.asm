@@ -92,6 +92,7 @@ ENDM
     list                BYTE    "Your list is: ", 0
     avg                 BYTE    "The average is: ", 0
     sum                 BYTE    "The sum is: ", 0
+    farewell            BYTE    "Thanks, it's been fun. Bye!", 0
 
     userInts            DWORD   10 DUP(?)
 
@@ -214,11 +215,13 @@ _loop_list:
     CALL    writeVal
     
     CALL    CrLF
+    CALL    CrLF
 
-    ;MOV     EDX, offset userInts
-    ;CALL    WriteString
+    ;------------------------------
+    ; Say goodbye, it's the end of the program
+    ;------------------------------
 
-    ;mDisplayString offset userString
+    mDisplayString offset farewell
 
     Invoke ExitProcess,0	; exit to operating system
 main ENDP
