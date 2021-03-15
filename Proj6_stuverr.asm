@@ -435,11 +435,21 @@ _clear_string:
     MOV     EDI, [EBP + 12] ; write string here
     MOV     EAX, [EBP + 8] ; signed dword
     MOV     ECX, 0 ; count the string length
+
+    ;------------------------------
+    ; check for negativity by seeing if the dword is less than 0. 
+    ; if negative, negate it and work only with the complement
+    ;------------------------------
+
+    CMP     EAX, 0
+    JGE     _convert_to_string
+    NEG     EAX
+
 _convert_to_string:
 
     XOR     EDX, EDX
     MOV     EBX, 10
-    DIV     EBX              ; remainder in EDX
+    IDIV    EBX              ; remainder in EDX
     
     ADD     EDX, 48 ; make it an ascii char
     MOV     [EDI], DL
@@ -450,6 +460,21 @@ _convert_to_string:
     JNE     _convert_to_string
     
     ;------------------------------
+    ; check for negativity by seeing if the dword is less than 0. 
+    ; if negative, append a "-" sign and take the negation
+    ;------------------------------
+
+    MOV     EAX, [EBP + 8]
+    CMP     EAX, 0
+    JGE     _not_negative
+    PUSH    EAX
+    MOV     AL, '-'
+    STOSB
+    POP     EAX
+    INC     ECX
+
+_not_negative:
+    ;------------------------------
     ; Loop back down through the string arr and reverse the string in memory
     ;------------------------------
     STD
@@ -457,6 +482,8 @@ _convert_to_string:
     DEC     ESI
     INC     EDI
     PUSH    EDI
+
+
 
 _reverse:
     LODSB   ; char is in AL

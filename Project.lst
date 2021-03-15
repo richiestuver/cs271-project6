@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 20:57:31
+Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 21:32:25
  Project6     (Proj6_stuverr.asm			     Page 1 - 1
 
 
@@ -353,15 +353,16 @@ Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 20:57:31
 				; Description: Gets user input as a string of ascii digits. Converts digits to 
 				;               numeric SDWORD. Validates the input. Writes the SDWORD to memory.
 				;
-				; Preconditions: pass in 5x 4byte data types == 20 bytes
+				; Preconditions: pass in 6x 4byte data types == 24 bytes
 				;
 				; Postconditions: all registers saved and restored. 
 				;
-				; Recieves: 1) addr to store user DWORD         [EBP + 24]
-				;           2) addr of prompt string            [EBP + 20]
-				;           3) addr to store user string        [EBP + 16]
-				;           4) size of user string              [EBP + 12]
-				;           5) addr to store bytes read         [EBP + 8]
+				; Recieves: 1) addr for error message offset    [EBP + 28]
+				;           2) addr to store user DWORD         [EBP + 24]
+				;           3) addr of prompt string            [EBP + 20]
+				;           4) addr to store user string        [EBP + 16]
+				;           5) size of user string              [EBP + 12]
+				;           6) addr to store bytes read         [EBP + 8]
 				;
 				; Returns: user's input saved as dword in memory
 				;
@@ -567,57 +568,84 @@ Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 20:57:31
  0000019C  8B 7D 0C		    MOV     EDI, [EBP + 12] ; write string here
  0000019F  8B 45 08		    MOV     EAX, [EBP + 8] ; signed dword
  000001A2  B9 00000000		    MOV     ECX, 0 ; count the string length
- 000001A7			_convert_to_string:
 
- 000001A7  33 D2		    XOR     EDX, EDX
- 000001A9  BB 0000000A		    MOV     EBX, 10
- 000001AE  F7 F3		    DIV     EBX              ; remainder in EDX
-				    
- 000001B0  83 C2 30		    ADD     EDX, 48 ; make it an ascii char
- 000001B3  88 17		    MOV     [EDI], DL
- 000001B5  47			    INC     EDI
- 000001B6  41			    INC     ECX
+				    ;------------------------------
+				    ; check for negativity by seeing if the dword is less than 0. 
+				    ; if negative, negate it and work only with the complement
+				    ;------------------------------
 
- 000001B7  83 F8 00		    CMP     EAX, 0
- 000001BA  75 EB		    JNE     _convert_to_string
+ 000001A7  83 F8 00		    CMP     EAX, 0
+ 000001AA  7D 02		    JGE     _convert_to_string
+ 000001AC  F7 D8		    NEG     EAX
+
+ 000001AE			_convert_to_string:
+
+ 000001AE  33 D2		    XOR     EDX, EDX
+ 000001B0  BB 0000000A		    MOV     EBX, 10
+ 000001B5  F7 FB		    IDIV    EBX              ; remainder in EDX
 				    
+ 000001B7  83 C2 30		    ADD     EDX, 48 ; make it an ascii char
+ 000001BA  88 17		    MOV     [EDI], DL
+ 000001BC  47			    INC     EDI
+ 000001BD  41			    INC     ECX
+
+ 000001BE  83 F8 00		    CMP     EAX, 0
+ 000001C1  75 EB		    JNE     _convert_to_string
+				    
+				    ;------------------------------
+				    ; check for negativity by seeing if the dword is less than 0. 
+				    ; if negative, append a "-" sign and take the negation
+				    ;------------------------------
+
+ 000001C3  8B 45 08		    MOV     EAX, [EBP + 8]
+ 000001C6  83 F8 00		    CMP     EAX, 0
+ 000001C9  7D 06		    JGE     _not_negative
+ 000001CB  50			    PUSH    EAX
+ 000001CC  B0 2D		    MOV     AL, '-'
+ 000001CE  AA			    STOSB
+ 000001CF  58			    POP     EAX
+ 000001D0  41			    INC     ECX
+
+ 000001D1			_not_negative:
 				    ;------------------------------
 				    ; Loop back down through the string arr and reverse the string in memory
 				    ;------------------------------
- 000001BC  FD			    STD
- 000001BD  8B F7		    MOV     esi, EDI
- 000001BF  4E			    DEC     ESI
- 000001C0  47			    INC     EDI
- 000001C1  57			    PUSH    EDI
+ 000001D1  FD			    STD
+ 000001D2  8B F7		    MOV     esi, EDI
+ 000001D4  4E			    DEC     ESI
+ 000001D5  47			    INC     EDI
+ 000001D6  57			    PUSH    EDI
 
- 000001C2			_reverse:
- 000001C2  AC			    LODSB   ; char is in AL
- 000001C3  88 07		    MOV     [EDI], AL
- 000001C5  47			    INC     EDI ; add to the next available spot in the string buffer as we decrement ESI
- 000001C6  E2 FA		    LOOP    _reverse
 
- 000001C8  FC			    CLD     ; NEVER FORGET
- 000001C9  5F			    POP     EDI
- 000001CA  8B F7		    MOV     ESI, EDI
+
+ 000001D7			_reverse:
+ 000001D7  AC			    LODSB   ; char is in AL
+ 000001D8  88 07		    MOV     [EDI], AL
+ 000001DA  47			    INC     EDI ; add to the next available spot in the string buffer as we decrement ESI
+ 000001DB  E2 FA		    LOOP    _reverse
+
+ 000001DD  FC			    CLD     ; NEVER FORGET
+ 000001DE  5F			    POP     EDI
+ 000001DF  8B F7		    MOV     ESI, EDI
 				    mDisplayString ESI
- 000001CC  52		     1	    PUSH    EDX
- 000001CD  8B D6	     1	    MOV     EDX, ESI
- 000001CF  E8 00000000 E     1	    CALL    WriteString
- 000001D4  5A		     1	    POP     EDX
+ 000001E1  52		     1	    PUSH    EDX
+ 000001E2  8B D6	     1	    MOV     EDX, ESI
+ 000001E4  E8 00000000 E     1	    CALL    WriteString
+ 000001E9  5A		     1	    POP     EDX
 
 				    ;------------------------------
 				    ; Tear down the call stack and restore registers
 				    ;------------------------------
 
- 000001D5  61			    POPAD
+ 000001EA  61			    POPAD
 
- 000001D6  5D			    POP     EBP
- 000001D7  C2 000C		    RET     12
+ 000001EB  5D			    POP     EBP
+ 000001EC  C2 000C		    RET     12
 
- 000001DA			WriteVal ENDP
+ 000001EF			WriteVal ENDP
 
 				END main
-Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 20:57:31
+Microsoft (R) Macro Assembler Version 14.28.29335.0	    03/14/21 21:32:25
  Project6     (Proj6_stuverr.asm			     Symbols 2 - 1
 
 
@@ -720,7 +748,7 @@ Segments and Groups:
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
 _DATA  . . . . . . . . . . . . .	32 Bit	 000001C6 Para	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 000001DA Para	  Public  'CODE'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 000001EF Para	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
@@ -838,10 +866,11 @@ WriteStackFrameName  . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-WriteVal . . . . . . . . . . . .	P Near	 0000018A _TEXT	Length= 00000050 Public STDCALL
+WriteVal . . . . . . . . . . . .	P Near	 0000018A _TEXT	Length= 00000065 Public STDCALL
   _clear_string  . . . . . . . .	L Near	 00000199 _TEXT	
-  _convert_to_string . . . . . .	L Near	 000001A7 _TEXT	
-  _reverse . . . . . . . . . . .	L Near	 000001C2 _TEXT	
+  _convert_to_string . . . . . .	L Near	 000001AE _TEXT	
+  _not_negative  . . . . . . . .	L Near	 000001D1 _TEXT	
+  _reverse . . . . . . . . . . .	L Near	 000001D7 _TEXT	
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 000000ED Public STDCALL
   _get_ints  . . . . . . . . . .	L Near	 0000001B _TEXT	
