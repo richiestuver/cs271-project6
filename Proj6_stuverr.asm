@@ -449,11 +449,15 @@ _convert_to_string:
 
     XOR     EDX, EDX
     MOV     EBX, 10
-    IDIV    EBX              ; remainder in EDX
+    IDIV    EBX     ; remainder in EDX
     
     ADD     EDX, 48 ; make it an ascii char
-    MOV     [EDI], DL
-    INC     EDI
+    PUSH    EAX
+
+    MOV     AL, DL
+    STOSB
+
+    POP     EAX
     INC     ECX
 
     CMP     EAX, 0
